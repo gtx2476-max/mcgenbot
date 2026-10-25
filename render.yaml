@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: mcgenbot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    runCommand: python bot.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        value: minecGenBot
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OWNER_USERNAME
+        value: LonneyNew
+      - key: OWNER_ID
+        sync: false
+      - key: SMTP_EMAIL
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: REPORT_EMAIL
+        value: ferdinand972@gmail.com
