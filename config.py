@@ -51,10 +51,10 @@ PRO_DAILY = _int("PRO_DAILY", 50)
 CREATOR_DAILY = _int("CREATOR_DAILY", 200)
 SUB_DAYS = _int("SUB_DAYS", 30)
 
-# Модели по тарифам (OpenRouter, суффикс :free = бесплатно)
-MODEL_FREE = os.environ.get("MODEL_FREE", "google/gemini-2.0-flash-exp:free")
-MODEL_PRO = os.environ.get("MODEL_PRO", "deepseek/deepseek-chat-v3-0324:free")
-MODEL_CREATOR = os.environ.get("MODEL_CREATOR", "qwen/qwen3-coder:free")
+# Модели по тарифам (OpenRouter, суффикс :free = бесплатно). Проверены 25.10.2026
+MODEL_FREE = os.environ.get("MODEL_FREE", "recursive/flint-v1.0:free")
+MODEL_PRO = os.environ.get("MODEL_PRO", "dots-studio/dots-3-note-preview:free")
+MODEL_CREATOR = os.environ.get("MODEL_CREATOR", "nvidia/nemotron-3-ultra-550b-a55b:free")
 
 MODELS = {"free": MODEL_FREE, "pro": MODEL_PRO, "creator": MODEL_CREATOR}
 MAX_TOKENS = {"free": 30000, "pro": 30000, "creator": 30000}
