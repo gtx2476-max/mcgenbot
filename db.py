@@ -26,6 +26,25 @@ CREATE TABLE IF NOT EXISTS purchases (
     ts INTEGER,
     refunded INTEGER DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS presence (
+    user_id INTEGER PRIMARY KEY,
+    ts INTEGER
+);
+CREATE TABLE IF NOT EXISTS gallery (
+    item_id TEXT PRIMARY KEY,
+    name TEXT,
+    kind TEXT,
+    tier TEXT,
+    username TEXT DEFAULT '',
+    votes INTEGER DEFAULT 0,
+    path TEXT,
+    ts INTEGER
+);
+CREATE TABLE IF NOT EXISTS votes_log (
+    user_id INTEGER,
+    item_id TEXT,
+    PRIMARY KEY (user_id, item_id)
+);
 """
 
 
@@ -41,12 +60,25 @@ def init():
 
 
 def ensure_user(uid: int, username: str):
+    now = int(time.time())
     with _conn() as c:
         c.execute(
             "INSERT INTO users (id, username, joined) VALUES (?, ?, ?) "
             "ON CONFLICT(id) DO UPDATE SET username = excluded.username",
-            (uid, username or "", int(time.time())),
+            (uid, username or "", now),
         )
+        c.execute(
+            "INSERT INTO presence (user_id, ts) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET ts = excluded.ts",
+            (uid, now),
+        )
+
+
+def online_count(window: int = 900) -> int:
+    with _conn() as c:
+        row = c.execute("SELECT COUNT(*) AS n FROM presence WHERE ts > ?",
+                        (int(time.time()) - window,)).fetchone()
+    return row["n"] if row else 0
 
 
 def get_user(uid: int):
@@ -120,3 +152,38 @@ def purchases(limit: int = 30):
         return c.execute(
             "SELECT * FROM purchases ORDER BY ts DESC LIMIT ?", (limit,)
         ).fetchall()
+
+
+def add_gallery_item(item_id: str, name: str, kind: str, tier: str, username: str, path: str):
+    with _conn() as c:
+        c.execute(
+            "INSERT OR IGNORE INTO gallery (item_id, name, kind, tier, username, votes, path, ts) "
+            "VALUES (?, ?, ?, ?, ?, 0, ?, ?)",
+            (item_id, name, kind, tier, username or "", path, int(time.time())),
+        )
+
+
+def top_gallery(limit: int = 20):
+    with _conn() as c:
+        return c.execute(
+            "SELECT * FROM gallery ORDER BY votes DESC, ts DESC LIMIT ?", (limit,)
+        ).fetchall()
+
+
+def vote_item(uid: int, item_id: str) -> bool:
+    """Голосует; True если голос засчитан (один голос на пользователя за работу)."""
+    with _conn() as c:
+        cur = c.execute(
+            "INSERT OR IGNORE INTO votes_log (user_id, item_id) VALUES (?, ?)",
+            (uid, item_id),
+        )
+        if cur.rowcount == 0:
+            return False
+        c.execute("UPDATE gallery SET votes = votes + 1 WHERE item_id = ?", (item_id,))
+    return True
+
+
+def has_voted(uid: int) -> list:
+    with _conn() as c:
+        return [r["item_id"] for r in c.execute(
+            "SELECT item_id FROM votes_log WHERE user_id = ?", (uid,)).fetchall()]

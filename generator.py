@@ -23,7 +23,7 @@ class AllModelsFailedError(RuntimeError):
     pass
 
 
-async def _call(model: str, tier: str, kind: str, user_prompt: str) -> str:
+async def _call(model: str, tier: str, kind: str, user_prompt: str, max_tokens: int) -> str:
     headers = {
         "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
@@ -35,7 +35,7 @@ async def _call(model: str, tier: str, kind: str, user_prompt: str) -> str:
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.6,
-        "max_tokens": config.MAX_TOKENS[tier],
+        "max_tokens": max_tokens,
         # у многих бесплатных моделей включены «размышления» — без этого
         # лимит токенов уходит в reasoning, а сам ответ не рождается
         "reasoning": {"exclude": True},
@@ -58,14 +58,18 @@ async def _call(model: str, tier: str, kind: str, user_prompt: str) -> str:
     return content
 
 
-async def generate(tier: str, kind: str, user_prompt: str) -> str:
+async def generate(tier: str, kind: str, user_prompt: str, speed: str = "quality") -> str:
     if not config.OPENROUTER_API_KEY:
         raise NoKeyError()
-    chain = [config.MODELS[tier]] + [m for m in FALLBACKS if m != config.MODELS[tier]]
+    if speed == "fast":
+        primary, budget = config.MODEL_FAST, config.MAX_TOKENS_FAST
+    else:
+        primary, budget = config.MODELS[tier], config.MAX_TOKENS[tier]
+    chain = [primary] + [m for m in FALLBACKS if m != primary]
     errors = []
     for model in chain:
         try:
-            return await _call(model, tier, kind, user_prompt)
+            return await _call(model, tier, kind, user_prompt, budget)
         except NoKeyError:
             raise
         except RuntimeError as e:

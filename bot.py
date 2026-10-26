@@ -14,6 +14,7 @@ import secrets
 import time
 import urllib.parse
 
+import aiohttp
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
@@ -286,6 +287,11 @@ async def generate_and_send(chat_id, uid: int, kind: str, prompt: str):
         spec = packaging.extract_spec(raw)
         fname, data = packaging.build(spec, kind)
         db.record_gen(uid)
+        fn = secrets.token_hex(6) + "_" + fname
+        (config.ROOT / "files").mkdir(exist_ok=True)
+        (config.ROOT / "files" / fn).write_bytes(data)
+        db.add_gallery_item(secrets.token_hex(5), str(spec.get("name", ""))[:60],
+                            kind, tier, (db.get_user(uid)["username"] if db.get_user(uid) else ""), fn)
         caption = (f"📦 <b>{html.escape(str(spec.get('name', '')))}</b>\n"
                    f"{html.escape(str(spec.get('description', '')))}\n\n"
                    f"Тариф: {TIERS[tier]} · осталось сегодня: {db.gens_left(uid, tier)}")
@@ -301,6 +307,22 @@ async def generate_and_send(chat_id, uid: int, kind: str, prompt: str):
             await status.edit_text(text)
         except Exception:
             await bot.send_message(chat_id, text)
+
+
+@router.message(Command("top"))
+async def cmd_top(m: Message):
+    rows = db.top_gallery(10)
+    if not rows:
+        return await m.answer("🏆 Галерея пока пуста — сгенерируй что-нибудь и стань первым!")
+    medals = ["🥇", "🥈", "🥉"] + ["▫️"] * 7
+    lines = [
+        f"{medals[i]} <b>{html.escape(r['name'])}</b> — {r['votes']} голосов · "
+        f"{KINDS.get(r['kind'], r['kind'])} · @{r['username'] or 'аноним'}"
+        for i, r in enumerate(rows)
+    ]
+    kb = main_kb() if current_public_url() else None
+    await m.answer("🏆 <b>Топ работ сообщества:</b>\n\n" + "\n".join(lines)
+                   + "\n\nГолосуй в мини-приложении → вкладка «Топ»", reply_markup=kb)
 
 
 # ---------------------------------------------------------------- команды владельца
@@ -341,6 +363,23 @@ async def cmd_refund(m: Message):
         return await m.answer("Не удалось вернуть: " + str(e)[:200])
     db.mark_refunded(row["charge_id"])
     await m.answer(f"✅ Звёзды возвращены пользователю @{row['username'] or row['tg_id']}.")
+
+
+# ---------------------------------------------------------------- самопингер
+async def self_ping():
+    """Каждые 9 минут дёргаем свой публичный адрес, чтобы Render не усыплял
+    бесплатный инстанс (сон наступает через 15 минут без входящих запросов)."""
+    await asyncio.sleep(60)
+    while True:
+        url = current_public_url()
+        if url:
+            try:
+                async with aiohttp.ClientSession() as s:
+                    async with s.get(url + "/", timeout=aiohttp.ClientTimeout(total=30)) as r:
+                        log.info("self-ping %s -> %s", url, r.status)
+            except Exception as e:
+                log.warning("self-ping failed: %s", str(e)[:100])
+        await asyncio.sleep(540)
 
 
 # ---------------------------------------------------------------- Web API мини-приложения
@@ -388,6 +427,7 @@ async def api_me(request):
     return web.json_response({
         "ok": True, "tier": tier, "tier_label": TIERS[tier],
         "expires": expires, "gens_left": db.gens_left(uid, tier),
+        "online": max(db.online_count(), 3),
         "username": user.get("username", ""),
         "pro_stars": config.PRO_STARS, "creator_stars": config.CREATOR_STARS,
     })
@@ -438,8 +478,9 @@ async def api_generate(request):
     if db.gens_left(uid, tier) <= 0:
         return web.json_response({"ok": False, "error":
             f"Лимит тарифа «{TIERS[tier]}» на сегодня исчерпан — улучши подписку ⭐"}, status=429)
+    speed = "fast" if data.get("speed") == "fast" else "quality"
     try:
-        raw = await generator.generate(tier, kind, prompt)
+        raw = await generator.generate(tier, kind, prompt, speed)
         spec = packaging.extract_spec(raw)
         fname, archive = packaging.build(spec, kind)
         db.record_gen(uid)
@@ -447,21 +488,61 @@ async def api_generate(request):
         log.exception("webapp generation failed")
         return web.json_response({"ok": False, "error": friendly_error(e)}, status=500)
 
-    if current_public_url():
-        fn = secrets.token_hex(6) + "_" + fname
-        (config.ROOT / "files").mkdir(exist_ok=True)
-        (config.ROOT / "files" / fn).write_bytes(archive)
-        url = f"/files/{fn}"  # относительная ссылка — работает при любой смене адреса туннеля
-        return web.json_response({"ok": True, "name": spec.get("name", ""), "description": spec.get("description", ""),
-                                  "install": spec.get("install", ""), "filename": fname, "url": url})
-    # Публичного адреса нет — отправляем файл прямо в чат с ботом
-    caption = f"📦 <b>{html.escape(str(spec.get('name', '')))}</b>\n{html.escape(str(spec.get('description', '')))}"
-    await bot.send_document(uid, document=BufferedInputFile(archive, filename=fname), caption=caption)
-    inst = str(spec.get("install", "")).strip()
-    if inst:
-        await bot.send_message(uid, "📥 <b>Установка:</b>\n" + html.escape(inst))
-    return web.json_response({"ok": True, "sent_to_chat": True, "name": spec.get("name", ""),
-                              "description": spec.get("description", ""), "install": spec.get("install", "")})
+    # сохраняем файл и публикуем в галерею
+    fn = secrets.token_hex(6) + "_" + fname
+    (config.ROOT / "files").mkdir(exist_ok=True)
+    (config.ROOT / "files" / fn).write_bytes(archive)
+    item_id = secrets.token_hex(5)
+    db.add_gallery_item(item_id, str(spec.get("name", ""))[:60], kind, tier,
+                        user.get("username", ""), fn)
+
+    # и всегда отправляем копию в чат пользователю
+    caption = (f"📦 <b>{html.escape(str(spec.get('name', '')))}</b>\n"
+               f"{html.escape(str(spec.get('description', '')))}\n"
+               f"📥 <b>Установка:</b>\n{html.escape(str(spec.get('install', '')))[:800]}")
+    try:
+        await bot.send_document(uid, document=BufferedInputFile(archive, filename=fname),
+                                caption=caption[:1024])
+        sent_to_chat = True
+    except Exception as e:
+        log.warning("chat delivery failed: %s", str(e)[:100])
+        sent_to_chat = False
+
+    return web.json_response({
+        "ok": True, "name": spec.get("name", ""), "description": spec.get("description", ""),
+        "install": spec.get("install", ""), "filename": fname,
+        "url": f"/files/{fn}", "item_id": item_id, "sent_to_chat": sent_to_chat,
+    })
+
+
+async def api_top(request):
+    vals = verify_init_data(request.query.get("initData", ""))
+    if not vals:
+        return web.json_response({"ok": False, "error": "auth"}, status=401)
+    user = tg_user_from(vals)
+    uid = user.get("id")
+    items = []
+    for r in db.top_gallery(20):
+        items.append({
+            "id": r["item_id"], "name": r["name"], "kind": KINDS.get(r["kind"], r["kind"]),
+            "tier": r["tier"], "username": r["username"], "votes": r["votes"],
+            "url": f"/files/{r['path']}",
+        })
+    return web.json_response({"ok": True, "items": items, "voted": db.has_voted(uid)})
+
+
+async def api_vote(request):
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "bad request"}, status=400)
+    vals = verify_init_data(data.get("initData", ""))
+    if not vals:
+        return web.json_response({"ok": False, "error": "auth"}, status=401)
+    uid = tg_user_from(vals).get("id")
+    item_id = str(data.get("item_id", ""))[:16]
+    counted = db.vote_item(uid, item_id)
+    return web.json_response({"ok": True, "counted": counted})
 
 
 # ---------------------------------------------------------------- запуск
@@ -478,6 +559,8 @@ async def main():
     app = web.Application()
     app.router.add_get("/", web_index)
     app.router.add_get("/api/me", api_me)
+    app.router.add_get("/api/top", api_top)
+    app.router.add_post("/api/vote", api_vote)
     app.router.add_post("/api/buy", api_buy)
     app.router.add_post("/api/generate", api_generate)
     (config.ROOT / "files").mkdir(exist_ok=True)
@@ -488,6 +571,7 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", config.WEBAPP_PORT)
     await site.start()
     log.info("WebApp: http://localhost:%s | публичный URL: %s", config.WEBAPP_PORT, config.PUBLIC_URL or "не задан")
+    asyncio.create_task(self_ping())
 
     if config.PUBLIC_URL and config.BOT_USERNAME:
         try:

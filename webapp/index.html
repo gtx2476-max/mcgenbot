@@ -7,32 +7,43 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
-    --bg1:#0b1020; --bg2:#131b36; --card:rgba(255,255,255,.06);
-    --stroke:rgba(255,255,255,.12); --txt:#eef2ff; --muted:#9aa7c7;
-    --acc1:#7c3aed; --acc2:#06b6d4; --ok:#22c55e; --err:#f87171; --star:#fbbf24;
+    --bg1:#0a0e1f; --bg2:#141b38; --card:rgba(255,255,255,.055);
+    --stroke:rgba(255,255,255,.11); --txt:#eef2ff; --muted:#96a2c5;
+    --acc1:#8b5cf6; --acc2:#06b6d4; --ok:#22c55e; --err:#f87171;
+    --star:#fbbf24; --gold:#f59e0b;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   body{
     margin:0; min-height:100vh; color:var(--txt);
     font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
-    background:linear-gradient(160deg,var(--bg1),var(--bg2) 60%,#1a1240);
-    overflow-x:hidden;
+    background:radial-gradient(1200px 600px at 80% -10%, #2a1655 0%, transparent 60%),
+               radial-gradient(900px 500px at -10% 110%, #06304a 0%, transparent 55%),
+               linear-gradient(160deg,var(--bg1),var(--bg2));
+    background-attachment:fixed; overflow-x:hidden;
   }
   .stars{position:fixed; inset:0; pointer-events:none; z-index:0}
   .stars i{position:absolute; width:3px; height:3px; border-radius:50%; background:#fff;
-    opacity:.6; animation:tw 3s ease-in-out infinite}
-  @keyframes tw{0%,100%{opacity:.15; transform:scale(.7)}50%{opacity:.8; transform:scale(1.2)}}
+    opacity:.5; animation:tw 3s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.12; transform:scale(.7)}50%{opacity:.85; transform:scale(1.25)}}
 
-  main{position:relative; z-index:1; max-width:520px; margin:0 auto; padding:18px 16px 90px}
-  header{text-align:center; margin:10px 0 18px}
-  header h1{margin:0; font-size:30px; font-weight:800; letter-spacing:.5px}
+  main{position:relative; z-index:1; max-width:540px; margin:0 auto; padding:16px 14px 96px}
+  header{text-align:center; margin:8px 0 14px}
+  .logo{font-size:34px; animation:float 3.5s ease-in-out infinite; display:inline-block}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  header h1{margin:2px 0 0; font-size:28px; font-weight:800; letter-spacing:.4px}
   header h1 b{background:linear-gradient(90deg,var(--acc1),var(--acc2));
     -webkit-background-clip:text; background-clip:text; color:transparent}
-  header p{margin:6px 0 0; color:var(--muted); font-size:13px}
+  header p{margin:5px 0 0; color:var(--muted); font-size:13px}
+  .online{display:inline-flex; align-items:center; gap:7px; margin-top:10px;
+    padding:6px 14px; border-radius:999px; background:rgba(34,197,94,.12);
+    border:1px solid rgba(34,197,94,.35); font-size:12.5px; font-weight:600}
+  .online .dot{width:8px; height:8px; border-radius:50%; background:var(--ok);
+    box-shadow:0 0 0 0 rgba(34,197,94,.6); animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
 
-  .tabs{display:flex; gap:8px; margin-bottom:16px}
-  .tab{flex:1; padding:11px 0; border-radius:14px; border:1px solid var(--stroke);
-    background:var(--card); color:var(--muted); font-size:14px; font-weight:600;
+  .tabs{display:flex; gap:7px; margin:14px 0}
+  .tab{flex:1; padding:10px 4px; border-radius:13px; border:1px solid var(--stroke);
+    background:var(--card); color:var(--muted); font-size:13px; font-weight:700;
     cursor:pointer; transition:all .25s}
   .tab.active{background:linear-gradient(90deg,var(--acc1),var(--acc2)); color:#fff;
     border-color:transparent; box-shadow:0 6px 18px rgba(124,58,237,.35); transform:translateY(-2px)}
@@ -41,25 +52,30 @@
   @keyframes fade{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
 
   .card{background:var(--card); border:1px solid var(--stroke); border-radius:18px;
-    padding:16px; backdrop-filter:blur(12px); margin-bottom:14px;
+    padding:15px; backdrop-filter:blur(12px); margin-bottom:13px;
     transition:transform .25s, box-shadow .25s}
-  .card:hover{transform:translateY(-3px); box-shadow:0 10px 26px rgba(0,0,0,.35)}
+  .card:hover{transform:translateY(-2px); box-shadow:0 10px 26px rgba(0,0,0,.35)}
 
-  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px}
-  .chip{padding:9px 14px; border-radius:999px; border:1px solid var(--stroke);
-    background:var(--card); color:var(--txt); font-size:13px; font-weight:600;
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px}
+  .chip{padding:9px 13px; border-radius:999px; border:1px solid var(--stroke);
+    background:var(--card); color:var(--txt); font-size:12.5px; font-weight:600;
     cursor:pointer; transition:all .2s}
   .chip.on{background:linear-gradient(90deg,var(--acc1),var(--acc2)); border-color:transparent;
     box-shadow:0 4px 14px rgba(6,182,212,.35)}
   .chip:active{transform:scale(.94)}
+  .speedrow{display:flex; gap:8px; margin-bottom:10px}
+  .speed{flex:1; padding:9px 0; border-radius:12px; border:1px solid var(--stroke);
+    background:var(--card); color:var(--muted); font-size:12.5px; font-weight:700; cursor:pointer;
+    transition:all .2s; text-align:center}
+  .speed.on{border-color:var(--star); color:var(--star); background:rgba(251,191,36,.08)}
 
-  textarea{width:100%; min-height:110px; resize:vertical; border-radius:14px;
-    border:1px solid var(--stroke); background:rgba(0,0,0,.25); color:var(--txt);
+  textarea{width:100%; min-height:105px; resize:vertical; border-radius:14px;
+    border:1px solid var(--stroke); background:rgba(0,0,0,.28); color:var(--txt);
     padding:12px 14px; font-size:14px; font-family:inherit; outline:none; transition:border .2s}
   textarea:focus{border-color:var(--acc2)}
 
-  .cta{position:relative; overflow:hidden; width:100%; padding:15px 0; margin-top:12px;
-    border:none; border-radius:15px; font-size:16px; font-weight:800; color:#fff; cursor:pointer;
+  .cta{position:relative; overflow:hidden; width:100%; padding:14px 0; margin-top:11px;
+    border:none; border-radius:15px; font-size:15.5px; font-weight:800; color:#fff; cursor:pointer;
     background:linear-gradient(90deg,var(--acc1),var(--acc2));
     box-shadow:0 8px 22px rgba(124,58,237,.4); transition:transform .15s, filter .2s}
   .cta:active{transform:scale(.97)}
@@ -69,28 +85,46 @@
     animation:shine 2.8s ease infinite}
   @keyframes shine{0%{left:-80%}55%,100%{left:130%}}
 
-  .prog{margin-top:14px}
+  .prog{margin-top:13px}
   .bar{height:8px; border-radius:99px; background:rgba(0,0,0,.3); overflow:hidden}
   .bar i{display:block; height:100%; width:35%; border-radius:99px;
     background:linear-gradient(90deg,var(--acc1),var(--acc2)); animation:run 1.4s ease-in-out infinite}
   @keyframes run{0%{margin-left:-35%}100%{margin-left:100%}}
-  #ptext{margin-top:8px; color:var(--muted); font-size:13px; text-align:center}
+  #ptext{margin-top:8px; color:var(--muted); font-size:12.5px; text-align:center}
 
   .plan{position:relative; overflow:hidden}
-  .plan h3{margin:0 0 4px; font-size:17px}
-  .plan .price{position:absolute; top:14px; right:14px; font-weight:800; color:var(--star); font-size:15px}
-  .plan ul{margin:10px 0 12px; padding-left:18px; color:var(--muted); font-size:13px; line-height:1.7}
+  .plan h3{margin:0 0 4px; font-size:16px}
+  .plan .price{position:absolute; top:13px; right:14px; font-weight:800; color:var(--star); font-size:14px}
+  .plan ul{margin:9px 0 11px; padding-left:18px; color:var(--muted); font-size:12.5px; line-height:1.7}
   .plan .cur{position:absolute; inset:0; border-radius:18px; border:2px solid var(--ok);
     pointer-events:none; opacity:.85}
-  .badge{display:inline-block; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700;
-    background:linear-gradient(90deg,var(--acc1),var(--acc2)); margin-bottom:10px}
-  .muted{color:var(--muted); font-size:13px; line-height:1.6}
-  .dl{display:block; text-align:center; text-decoration:none; padding:13px 0; border-radius:14px;
-    margin-top:12px; font-weight:800; color:#062012; background:linear-gradient(90deg,#34d399,#22c55e)}
+  .badge{display:inline-block; padding:4px 12px; border-radius:99px; font-size:11.5px; font-weight:700;
+    background:linear-gradient(90deg,var(--acc1),var(--acc2)); margin-bottom:9px}
+  .muted{color:var(--muted); font-size:12.5px; line-height:1.65}
+  .dl{display:block; text-align:center; text-decoration:none; padding:12px 0; border-radius:14px;
+    margin-top:11px; font-weight:800; color:#062012; background:linear-gradient(90deg,#34d399,#22c55e)}
+  .sentnote{display:flex; align-items:center; gap:8px; margin-top:10px; padding:10px 12px;
+    border-radius:12px; background:rgba(6,182,212,.1); border:1px solid rgba(6,182,212,.3);
+    font-size:12.5px; color:#a5f3fc}
 
-  #toast{position:fixed; left:50%; bottom:24px; transform:translate(-50%,120%);
+  .galitem{display:flex; align-items:center; gap:11px; padding:11px 12px; border-radius:14px;
+    border:1px solid var(--stroke); background:var(--card); margin-bottom:9px; transition:all .2s}
+  .galitem.top1{border:1.5px solid var(--gold); background:rgba(245,158,11,.07);
+    box-shadow:0 4px 18px rgba(245,158,11,.15)}
+  .galitem .rank{font-size:19px; width:30px; text-align:center; flex-shrink:0}
+  .galitem .meta{flex:1; min-width:0}
+  .galitem .nm{font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .galitem .sub{color:var(--muted); font-size:11px; margin-top:2px}
+  .vote{border:none; border-radius:11px; padding:8px 12px; font-weight:800; font-size:12.5px;
+    cursor:pointer; background:rgba(139,92,246,.16); color:#c4b5fd; border:1px solid rgba(139,92,246,.35);
+    transition:all .2s; flex-shrink:0}
+  .vote:active{transform:scale(.93)}
+  .vote.did{background:rgba(34,197,94,.14); color:#86efac; border-color:rgba(34,197,94,.4); cursor:default}
+  .galitem a{color:#7dd3fc; text-decoration:none; font-size:11px}
+
+  #toast{position:fixed; left:50%; bottom:22px; transform:translate(-50%,130%);
     background:#1c2748; border:1px solid var(--stroke); color:var(--txt);
-    padding:12px 18px; border-radius:14px; font-size:14px; max-width:88%;
+    padding:11px 17px; border-radius:14px; font-size:13.5px; max-width:88%;
     box-shadow:0 10px 30px rgba(0,0,0,.5); transition:transform .35s; z-index:50}
   #toast.show{transform:translate(-50%,0)}
   #toast.err{border-color:var(--err)} #toast.ok{border-color:var(--ok)}
@@ -101,14 +135,17 @@
 <div class="stars" id="stars"></div>
 <main>
   <header>
-    <h1>⛏ MCGen <b>Studio</b></h1>
+    <span class="logo">⛏</span>
+    <h1>MCGen <b>Studio</b></h1>
     <p>ИИ-генератор аддонов, модов, плагинов и карт для Minecraft</p>
+    <div class="online"><span class="dot"></span><span id="onlineTxt">… человек сейчас пользуются</span></div>
   </header>
 
   <nav class="tabs">
     <button class="tab active" data-tab="gen">🎨 Студия</button>
-    <button class="tab" data-tab="subs">💎 Подписки</button>
-    <button class="tab" data-tab="me">👤 Профиль</button>
+    <button class="tab" data-tab="top">🏆 Топ</button>
+    <button class="tab" data-tab="subs">💎 Тарифы</button>
+    <button class="tab" data-tab="me">👤 Я</button>
   </nav>
 
   <section id="tab-gen" class="tabc active">
@@ -120,8 +157,12 @@
         <button class="chip" data-k="mod">🛠 Мод (Fabric)</button>
         <button class="chip" data-k="map">🗺 Карта</button>
       </div>
+      <div class="speedrow">
+        <button class="speed" data-s="fast">⚡ Быстро (~1 мин)</button>
+        <button class="speed on" data-s="quality">💎 Макс. качество (2–5 мин)</button>
+      </div>
       <textarea id="prompt" maxlength="2000"
-        placeholder="Например: аддон на магический кристалл — светится, наносит урон мобам рядом, крафтится из аметиста и жемчуга…"></textarea>
+        placeholder="Например: магический компас — показывает ближайшего дракона, крафтится из аметиста и компаса…"></textarea>
       <button id="go" class="cta">⚡ Сгенерировать</button>
       <div id="prog" class="prog hidden">
         <div class="bar"><i></i></div>
@@ -129,6 +170,14 @@
       </div>
     </div>
     <div id="result" class="card hidden"></div>
+  </section>
+
+  <section id="tab-top" class="tabc">
+    <div class="card">
+      <span class="badge">🏆 Зал славы</span>
+      <p class="muted" style="margin:4px 0 12px">Работы всех пользователей. Голосуй за лучшие — лидер подсвечен золотом. Одна работа = один твой голос.</p>
+      <div id="gal"><p class="muted" style="text-align:center">Загружаю…</p></div>
+    </div>
   </section>
 
   <section id="tab-subs" class="tabc">
@@ -144,7 +193,7 @@
     </div>
     <div class="card plan" data-tier="creator">
       <h3>⭐⭐ Креатор</h3><span class="price" id="p-creator">100⭐/мес</span>
-      <ul><li>200 генераций в день</li><li>самая мощная модель</li><li>3–5 сущностей, скрипты, мини-контент-паки</li></ul>
+      <ul><li>200 генераций в день</li><li>самая мощная модель (550B)</li><li>3–5 сущностей, скрипты, мини-контент-паки</li></ul>
       <button class="cta buy" data-tier="creator">Подключить Креатор</button>
     </div>
     <p class="muted" style="text-align:center">Оплата — Telegram Stars ⭐ внутри Telegram</p>
@@ -156,9 +205,14 @@
       <div class="muted" id="meInfo">Загружаю профиль…</div>
     </div>
     <div class="card">
-      <h3>ℹ️ Как всё работает</h3>
-      <p class="muted">Опиши идею — ИИ соберёт готовый файл: .mcaddon для Bedrock (двойной клик — и пак в игре),
-      датапак или карту для Java (в папку datapacks мира), исходники плагина для сервера или мода Fabric.</p>
+      <h3>ℹ️ Шпаргалка</h3>
+      <p class="muted">
+        <b>.mcaddon</b> — двойной клик по файлу, Minecraft импортирует сам.<br>
+        <b>Датапак/карта</b> — в папку datapacks мира, затем /reload.<br>
+        <b>Плагин</b> — исходники, собери через mvn package (BUILD.txt внутри).<br>
+        <b>Мод Fabric</b> — шаблон gradle на fabricmc.net/develop.<br><br>
+        Файл всегда дублируется в чат с ботом — не потеряешь.
+      </p>
     </div>
   </section>
 </main>
@@ -169,7 +223,6 @@ const tg = window.Telegram && Telegram.WebApp ? Telegram.WebApp : null;
 if (tg) { tg.ready(); tg.expand(); }
 const $ = s => document.querySelector(s);
 
-// звёздное небо
 (() => { const box = $('#stars'); for (let i = 0; i < 42; i++) {
   const s = document.createElement('i');
   s.style.left = Math.random()*100 + '%'; s.style.top = Math.random()*100 + '%';
@@ -177,17 +230,20 @@ const $ = s => document.querySelector(s);
   s.style.transform = 'scale(' + (0.5 + Math.random()*1.5) + ')';
   box.appendChild(s); } })();
 
-// табы
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.tabc').forEach(x => x.classList.toggle('active', x.id === 'tab-' + b.dataset.tab));
+  if (b.dataset.tab === 'top') loadTop();
 });
 
-// выбор типа
-let kind = 'addon';
+let kind = 'addon', speed = 'quality';
 document.querySelectorAll('#kinds .chip').forEach(c => c.onclick = () => {
   document.querySelectorAll('#kinds .chip').forEach(x => x.classList.toggle('on', x === c));
   kind = c.dataset.k;
+});
+document.querySelectorAll('.speed').forEach(c => c.onclick = () => {
+  document.querySelectorAll('.speed').forEach(x => x.classList.toggle('on', x === c));
+  speed = c.dataset.s;
 });
 
 function toast(msg, cls) {
@@ -195,7 +251,6 @@ function toast(msg, cls) {
   clearTimeout(t._h); t._h = setTimeout(() => t.className = '', 3800);
 }
 
-// профиль
 async function loadMe() {
   if (!tg) return;
   try {
@@ -207,6 +262,9 @@ async function loadMe() {
     $('#meInfo').innerHTML = '@' + (j.username || '') + '<br>' +
       (j.expires ? ('Действует до: <b>' + j.expires + '</b><br>') : '') +
       'Генераций осталось сегодня: <b>' + j.gens_left + '</b>';
+    if (j.online) $('#onlineTxt').textContent = j.online + ' ' +
+      (j.online % 10 === 1 && j.online % 100 !== 11 ? 'человек сейчас пользуются'
+       : 'человек(а) сейчас пользуются');
     if (j.pro_stars) $('#p-pro').textContent = j.pro_stars + '⭐/мес';
     if (j.creator_stars) $('#p-creator').textContent = j.creator_stars + '⭐/мес';
     document.querySelectorAll('.plan').forEach(p => {
@@ -215,11 +273,47 @@ async function loadMe() {
       const buy = p.querySelector('.buy');
       if (buy) buy.disabled = (j.tier === p.dataset.tier) || (j.tier === 'creator');
     });
-  } catch (e) { /* профиль не критичен */ }
+  } catch (e) {}
 }
-loadMe();
+loadMe(); setInterval(loadMe, 60000);
 
-// покупка
+async function loadTop() {
+  if (!tg) return;
+  const box = $('#gal');
+  try {
+    const r = await fetch('/api/top?initData=' + encodeURIComponent(tg.initData));
+    const j = await r.json();
+    if (!j.ok) { box.innerHTML = '<p class="muted">Не удалось загрузить</p>'; return; }
+    if (!j.items.length) { box.innerHTML = '<p class="muted" style="text-align:center">Пока пусто — сгенерируй работу в Студии и стань первым! 🚀</p>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    const voted = new Set(j.voted || []);
+    box.innerHTML = '';
+    j.items.forEach((it, i) => {
+      const d = document.createElement('div');
+      d.className = 'galitem' + (i === 0 && it.votes > 0 ? ' top1' : '');
+      d.innerHTML = '<div class="rank">' + (i < 3 ? medals[i] : (i+1)) + '</div>' +
+        '<div class="meta"><div class="nm">' + (it.name || 'Без имени') + '</div>' +
+        '<div class="sub">' + it.kind + ' · ' + (it.tier === 'creator' ? '⭐⭐' : it.tier === 'pro' ? '⭐' : '🆓') +
+        ' · @' + (it.username || 'аноним') + ' · <a href="' + it.url + '" download>скачать</a></div></div>';
+      const v = document.createElement('button');
+      v.className = 'vote' + (voted.has(it.id) ? ' did' : '');
+      v.textContent = voted.has(it.id) ? '✓ ' + it.votes : '▲ ' + it.votes;
+      v.onclick = async () => {
+        if (voted.has(it.id) || v.classList.contains('did')) return;
+        const rr = await fetch('/api/vote', { method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ item_id: it.id, initData: tg.initData }) });
+        const jj = await rr.json();
+        if (jj.ok && jj.counted) { v.classList.add('did'); v.textContent = '✓ ' + (it.votes + 1);
+          voted.add(it.id); toast('Голос засчитан! 🔥', 'ok'); }
+        else if (jj.ok) { v.classList.add('did'); voted.add(it.id); toast('Ты уже голосовал за эту работу'); }
+      };
+      d.appendChild(v);
+      box.appendChild(d);
+    });
+  } catch (e) { box.innerHTML = '<p class="muted">Сервер не ответил</p>'; }
+}
+
 document.querySelectorAll('.buy').forEach(b => b.onclick = async () => {
   if (!tg) return toast('Открой внутри Telegram', 'err');
   try {
@@ -234,7 +328,6 @@ if (tg) tg.onEvent('invoice_closed', d => {
   if (d && d.status === 'paid') { toast('🎉 Оплата прошла! Подписка активирована', 'ok'); loadMe(); }
 });
 
-// генерация
 const PHRASES = ['🧠 Обдумываю идею…', '📐 Проектирую структуру пакета…', '✍️ Пишу manifest.json…',
                  '🧩 Собираю сущности и компоненты…', '⚗️ Добавляю рецепты и лут-таблицы…',
                  '🔍 Проверяю формат…', '📦 Упаковываю архив…'];
@@ -246,21 +339,22 @@ $('#go').onclick = async () => {
   if (!tg) return toast('Открой приложение внутри Telegram', 'err');
   busy = true; $('#go').disabled = true; $('#result').classList.add('hidden');
   $('#prog').classList.remove('hidden');
-  let pi = 0; $('#ptext').textContent = PHRASES[0];
+  $('#ptext').textContent = speed === 'fast' ? '⚡ Быстрый режим…' : PHRASES[0];
+  let pi = 0;
   const timer = setInterval(() => { pi = (pi + 1) % PHRASES.length; $('#ptext').textContent = PHRASES[pi]; }, 5000);
   try {
     const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind, prompt, initData: tg.initData }) });
+      body: JSON.stringify({ kind, prompt, speed, initData: tg.initData }) });
     const j = await r.json();
     if (!j.ok) { toast(j.error || 'Ошибка генерации', 'err'); return; }
     const box = $('#result');
     box.classList.remove('hidden');
     box.innerHTML = '<span class="badge">✅ Готово</span><h3 style="margin:4px 0">' +
       (j.name || 'Пак') + '</h3><p class="muted">' + (j.description || '') + '</p>' +
-      (j.sent_to_chat
-        ? '<p class="muted">📨 Файл отправил тебе в чат с ботом — проверь сообщения!</p>'
-        : '<a class="dl" href="' + j.url + '" download>⬇️ Скачать ' + (j.filename || 'файл') + '</a>') +
-      (j.install ? '<p class="muted" style="margin-top:12px"><b>Установка:</b><br>' + j.install + '</p>' : '');
+      '<a class="dl" href="' + j.url + '" download>⬇️ Скачать ' + (j.filename || 'файл') + '</a>' +
+      (j.sent_to_chat ? '<div class="sentnote">📨 Копию отправил тебе в чат с ботом — файл не потеряется</div>' : '') +
+      (j.install ? '<p class="muted" style="margin-top:11px"><b>Установка:</b><br>' + j.install + '</p>' : '') +
+      '<p class="muted" style="margin-top:9px">Твоя работа попала в 🏆 Топ — оценят другие игроки!</p>';
     box.scrollIntoView({ behavior: 'smooth' });
     toast('Готово! 🎉', 'ok'); loadMe();
   } catch (e) {

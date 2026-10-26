@@ -57,7 +57,10 @@ MODEL_PRO = os.environ.get("MODEL_PRO", "dots-studio/dots-3-note-preview:free")
 MODEL_CREATOR = os.environ.get("MODEL_CREATOR", "nvidia/nemotron-3-ultra-550b-a55b:free")
 
 MODELS = {"free": MODEL_FREE, "pro": MODEL_PRO, "creator": MODEL_CREATOR}
+# Быстрый режим: маленькая модель без долгих размышлений
+MODEL_FAST = os.environ.get("MODEL_FAST", "recursive/flint-v1.0:free")
 MAX_TOKENS = {"free": 30000, "pro": 30000, "creator": 30000}
+MAX_TOKENS_FAST = 20000
 
 # Почтовые отчёты о покупках (Gmail + пароль приложения)
 SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "").strip()
